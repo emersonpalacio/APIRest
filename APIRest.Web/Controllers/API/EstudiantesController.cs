@@ -11,7 +11,7 @@ namespace APIRest.Web.Controllers.API
 {
     [Route("[controller]")]
     [ApiController]
-    public class EstudiantesController: ControllerBase
+    public class EstudiantesController : ControllerBase
     {
         private readonly DataContext _dataContext;
 
@@ -21,15 +21,15 @@ namespace APIRest.Web.Controllers.API
         }
 
         [HttpGet]
-        public async  Task<IEnumerable<Estudiante>> Get()
+        public async Task<IEnumerable<Estudiante>> Get()
         {
             return await _dataContext.Estudiantes.ToListAsync();
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{id}/{codigo}", Name = "GetEstudiantes")]
         public async Task<IActionResult> Get(int id)
         {
-            var estudiante= await _dataContext.Estudiantes.FindAsync(id);
+            var estudiante = await _dataContext.Estudiantes.FindAsync(id);
 
             if (estudiante == null)
             {
@@ -52,9 +52,44 @@ namespace APIRest.Web.Controllers.API
             {
                 _dataContext.Estudiantes.Add(estudiante);
                 await _dataContext.SaveChangesAsync();
-                return Created($"/Estudiante/{estudiante.IdEstudiante}", estudiante);
+                //se poseen tres tipos de created
+                // return Created($"/Estudiante/{estudiante.IdEstudiante}", estudiante);
+                //return CreatedAtAction(nameof(Get), new {id = estudiante.IdEstudiante, codigo = estudiante.Codigo }, estudiante);
+                return CreatedAtRoute("GetEstudiantes", new { id = estudiante.IdEstudiante, codigo = estudiante.Codigo }, estudiante);
+            }
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, Estudiante estudiante)
+        {
+            if (estudiante.IdEstudiante == 0)
+            {
+                estudiante.IdEstudiante = id;
+            }
+            if(estudiante.IdEstudiante != id)
+            {
+                return BadRequest();
             }
 
+            if (!await _dataContext.Estudiantes.Where(e=>e.IdEstudiante == id).AsNoTracking().AnyAsync())
+            {
+                return NotFound();
+            }
+
+            _dataContext.Entry(estudiante).State= EntityState.Modified;
+            await _dataContext.SaveChangesAsync();
+            return NoContent();
         }
+
+        //[HttpPatch("CambiarCodigo/{id}")]
+        //public async Task<IActionResult> CambiarCodigo( int id,[FromQuery] string codigo)
+        //{
+
+        //    var 
+
+
+        //    return
+        //}
+
     }
 }
