@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using APIRest.Web.ErrorHelper;
 
 namespace APIRest.Web.Controllers.API
 {
@@ -50,6 +51,10 @@ namespace APIRest.Web.Controllers.API
             }
             else
             {
+                if (await _dataContext.Estudiantes.Where(e => e.Codigo == estudiante.Codigo).AsNoTracking().AnyAsync())
+                {
+                    return BadRequest(errorHelper.Response(400, $"El codigo {estudiante.Codigo} ya existe."));
+                }
                 _dataContext.Estudiantes.Add(estudiante);
                 await _dataContext.SaveChangesAsync();
                 //se poseen tres tipos de created
@@ -66,30 +71,64 @@ namespace APIRest.Web.Controllers.API
             {
                 estudiante.IdEstudiante = id;
             }
-            if(estudiante.IdEstudiante != id)
+            if (estudiante.IdEstudiante != id)
             {
                 return BadRequest();
             }
 
-            if (!await _dataContext.Estudiantes.Where(e=>e.IdEstudiante == id).AsNoTracking().AnyAsync())
+            if (!await _dataContext.Estudiantes.Where(e => e.IdEstudiante == id).AsNoTracking().AnyAsync())
             {
                 return NotFound();
             }
 
-            _dataContext.Entry(estudiante).State= EntityState.Modified;
+            _dataContext.Entry(estudiante).State = EntityState.Modified;
             await _dataContext.SaveChangesAsync();
             return NoContent();
         }
 
-        //[HttpPatch("CambiarCodigo/{id}")]
-        //public async Task<IActionResult> CambiarCodigo( int id,[FromQuery] string codigo)
-        //{
+        [HttpPatch("CambiarCodigo/{id}")]
+        public async Task<IActionResult> CambiarCodigo(int id, [FromQuery] string codigo)
+        {
+            if (string.IsNullOrWhiteSpace(codigo))
+            {
+                return BadRequest(errorHelper.Response(400, "codigo vacio"));
+            }
+            var estudiante = await _dataContext.Estudiantes.FindAsync(id);
+            if (estudiante == null)
+            {
+                return NotFound();
+            }
 
-        //    var 
+            if (await _dataContext.Estudiantes.Where(e => e.Codigo == codigo && e.IdEstudiante != id).AnyAsync())
+            {
+                return BadRequest(errorHelper.Response(400, $"El codigo {codigo} ya existe"));
+            }
+
+            estudiante.Codigo = codigo;
+            await _dataContext.SaveChangesAsync();
+
+            return StatusCode(201, estudiante);
+        }
 
 
-        //    return
-        //}
+        [HttpDelete("{id}")]
+
+        public async Task<IActionResult> delete(int id)
+        {
+            var estudiantes = await _dataContext.Estudiantes.FindAsync(id);
+            if (estudiantes == null)
+            {
+                return NotFound();
+            }
+
+            _dataContext.Estudiantes.Remove(estudiantes);
+            await _dataContext.SaveChangesAsync();
+            return NotFound();
+        }
+
+
+
+
 
     }
 }
